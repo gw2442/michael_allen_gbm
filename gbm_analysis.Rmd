@@ -1,0 +1,107 @@
+---
+title: "GBM Analysis"
+output: html_document
+date: "2022-10-26"
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(patchwork)
+library(naniar)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+Importing data
+
+```{r}
+gbm_data = read_csv(
+  'data/gbm_patient_data.csv') %>%
+  janitor::clean_names() %>%
+  mutate(
+    age = 2022 - year_of_birth,
+    ) %>%
+  replace_with_na_all(condition = ~.x == 999) %>%
+  replace_with_na_all(condition = ~.x == 9) %>%
+  select(comorbidity_other_specify_29, everything()) %>%
+  pivot_longer(
+    comorbidity_renal_impairment:comorbidity_none,
+    names_to = "comorbidity",
+    names_prefix = "comorbidity_",
+    values_to = "comorbidity_type",
+  ) %>%
+  select(md_id:comorbidity_type, comorbidity_other_specify_29)
+
+skimr::skim(gbm_data)
+
+```
+
+
+Exploratory data analysis
+```{r}
+ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = age)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = line_of_therapy)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = race)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = patients_level_of_involvement_in_gbm)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = patients_treatment_goals)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = primary_insurance)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = adequate_caretaker_support)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = travel_time_to_your_office)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = ecog_at_1st_line)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = ecog_at_1st_line)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = mgmt_methylated)) + geom_bar()
+       
+ggplot(data = gbm_data, aes(x = egfr_mutated)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = tp53_mutated)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = idh1_idh2_mutated)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = pd_l1_overexpressed)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = percent_of_tumor_mass_surgically_resected)) + geom_bar()
+       
+ggplot(data = gbm_data, aes(x = comorbidity, y = comorbidity_type)) + geom_histogram()
+
+ggplot(data = gbm_data, aes(x = comorbidity_oterh_specify_29)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = regimen_in_1st_line)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = regiment_in_1st_line_other)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = regiment_in_2nd_line)) + geom_bar()
+
+ggplot(data = gbm_data, aes(x = regiment_in_2nd_line_other)) + geom_bar()
+```
+
+
+
+
