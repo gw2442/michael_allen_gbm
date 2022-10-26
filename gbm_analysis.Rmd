@@ -159,6 +159,8 @@ comorbidity_df %>%
   labs(
     title = "Distribution of Number of Comorbidities per Patient",
     x = "Number of Comorbidities")
+
+ggsave(path = "results", filename = "number_of_comorbidities.pdf")
 ```
 
 
@@ -176,7 +178,11 @@ comorbidity_df %>%
   labs(
     title = "Distribution of Comorbidity Types among Patients",
     x = "Comorbidities Types") +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    theme(legend.title = element_text(size = 8), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "distribution_of_comorbidity_types.pdf", width = 10, height = 7)
 ```
 
 comorbidity - other specified:
@@ -207,6 +213,8 @@ ggplot(data = ecog_data, aes(x = ecog_at_2nd_line)) +
     title = "ECOG Distribution at 2nd Line",
     x = "ECOG Performance Status Scale") +
     theme(legend.position = "bottom")
+
+ggsave(path = "results", filename = "ecog_1st_2nd_comparison.pdf")
 ```
 
 ##Regimen 1st vs 2nd
@@ -222,7 +230,7 @@ gbm_data %>%
   mutate(regimen_in_2nd_line = fct_reorder(regimen_in_2nd_line, n)) %>%
   ggplot(aes(x = regimen_in_2nd_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip()
 
-
+ggsave(path = "results", filename = "regimen_1st_2nd.pdf", width = 10, height = 7)
 ```
 
 
@@ -238,13 +246,19 @@ ggplot(data = ecog_data, aes(x = ecog_at_1st_line, fill = regimen_in_1st_line)) 
     title = "ECOG Distribution by Regimen at 1st Line Treatment",
     x = "ECOG at 1st Line Treatment") +
     theme(legend.position = "bottom") +
+    theme(legend.title = element_text(size = 10), 
+               legend.text = element_text(size = 10)) +
   
   ggplot(data = ecog_data, aes(x = ecog_at_2nd_line, fill = regimen_in_2nd_line)) + 
   geom_bar() +
   labs(
     title = "ECOG Distribution by Regimen at 2nd Line Treatment",
     x = "ECOG at 2nd Line Treatment") +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    theme(legend.title = element_text(size = 10), 
+               legend.text = element_text(size = 10))
+
+ggsave(path = "results", filename = "ecog_by_treatment_1st_2nd.pdf", width = 20, height = 12)
 ```
 
 
@@ -300,6 +314,8 @@ mutation_df %>%
   labs(
     title = "Distribution of Number of Mutations per Patient",
     x = "Number of Mutations")
+
+ggsave(path = "results", filename = "number_of_mmutations.pdf")
 ```
 
 distribution of mutations
@@ -315,7 +331,11 @@ mutation_df %>%
   labs(
     title = "Distribution of Mutation Types among Patients",
     x = "Mutation Types") +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "mutation_distribution.pdf")
 ```
 
 gender distribution across mutations
@@ -333,7 +353,12 @@ ggplot(data = mutation_gender_df, (aes(x = reorder(mutation_type, -count), fill 
   labs(
     title = "Gender Distribution of Mutation Types among Patients",
     x = "Mutation Types") +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom")+
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "mutation_gender_distribution.pdf")
 ```
 
 ## demographic plots
@@ -344,11 +369,15 @@ ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar(fill = "ligh
     x = "Gender") +
     theme(legend.position = "bottom")
 
+ggsave(path = "results", filename = "gender_distribution.pdf")
+
 ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar(fill="lightblue") +
     labs(
     title = "Age of Diagnosis Distribution of Patients",
     x = "Age") +
     theme(legend.position = "bottom")
+
+ggsave(path = "results", filename = "age_at_diagnosis_distribution.pdf")
 
 gbm_data %>%
   mutate(line_of_therapy = as.character(line_of_therapy)) %>%
@@ -358,6 +387,8 @@ gbm_data %>%
     x = "Line of Therapy") +
     theme(legend.position = "bottom")
 
+ggsave(path = "results", filename = "line_of_therapy_distribution.pdf")
+
 gbm_data %>%
   count(race) %>%
   mutate(race = fct_reorder(race, -n)) %>%
@@ -366,6 +397,8 @@ gbm_data %>%
     title = "Race Distribution of Patients",
     x = "Race") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggsave(path = "results", filename = "race_distribution.pdf")
+
 
 gbm_data %>%
   count(primary_insurance) %>%
@@ -375,6 +408,8 @@ gbm_data %>%
     title = "Primary Health Insurance Distribution of Patients",
     x = "Primar Health Insurance") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave(path = "results", filename = "primary_insurance_distribution.pdf")
 ```
 
 
