@@ -46,7 +46,7 @@ skimr::skim(gbm_data)
 
 
 ## Exploratory data analysis
-```{r}
+```{r, include = FALSE}
 ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar()
 
 ggplot(data = gbm_data, aes(x = age)) + geom_bar()
@@ -180,7 +180,7 @@ comorbidity_df %>%
 ```
 
 comorbidity - other specified:
-```{r}
+```{r, include = FALSE}
 gbm_data %>%
   drop_na(comorbidity_other_specify_29) %>%
   ggplot(aes(x = comorbidity_other_specify_29)) + geom_bar()
@@ -188,4 +188,193 @@ gbm_data %>%
 8 patients specified - specific comorbidities include: 
 aortic aneurism, arthritis, bipolar, disc disease, elevated cholesterol, herniated disc surgery, obese, parkinsons
 
-## mutation data analysis 
+## ecog comparison 
+```{r}
+ecog_data =
+  gbm_data %>%
+  select(patient_id, ecog_at_1st_line, ecog_at_2nd_line)
+
+ggplot(data = ecog_data, aes(x = ecog_at_1st_line)) + 
+  geom_bar(fill = "lightblue") +
+  labs(
+    title = "ECOG Distribution at 1st Line",
+    x = "ECOG Performance Status Scale") +
+    theme(legend.position = "bottom") +
+
+ggplot(data = ecog_data, aes(x = ecog_at_2nd_line)) + 
+  geom_bar(fill = "lightblue") +
+  labs(
+    title = "ECOG Distribution at 2nd Line",
+    x = "ECOG Performance Status Scale") +
+    theme(legend.position = "bottom")
+```
+
+##Regimen 1st vs 2nd
+```{r}
+gbm_data %>%
+  count(regimen_in_1st_line) %>%
+  mutate(regimen_in_1st_line = fct_reorder(regimen_in_1st_line, n)) %>%
+  ggplot(aes(x = regimen_in_1st_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip() +
+  
+
+gbm_data %>%
+  count(regimen_in_2nd_line) %>%
+  mutate(regimen_in_2nd_line = fct_reorder(regimen_in_2nd_line, n)) %>%
+  ggplot(aes(x = regimen_in_2nd_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip()
+
+
+```
+
+
+1st line ecog by treatment and 2nd line ecog by treatment
+```{r}
+ecog_data =
+  gbm_data %>%
+  select(patient_id, ecog_at_1st_line, ecog_at_2nd_line, regimen_in_1st_line, regimen_in_2nd_line)
+
+ggplot(data = ecog_data, aes(x = ecog_at_1st_line, fill = regimen_in_1st_line)) + 
+  geom_bar() +
+  labs(
+    title = "ECOG Distribution by Regimen at 1st Line Treatment",
+    x = "ECOG at 1st Line Treatment") +
+    theme(legend.position = "bottom") +
+  
+  ggplot(data = ecog_data, aes(x = ecog_at_2nd_line, fill = regimen_in_2nd_line)) + 
+  geom_bar() +
+  labs(
+    title = "ECOG Distribution by Regimen at 2nd Line Treatment",
+    x = "ECOG at 2nd Line Treatment") +
+    theme(legend.position = "bottom")
+```
+
+
+
+
+## mutation analysis
+tidying data
+```{r}
+mutation_df =
+  gbm_data %>%
+  select(patient_id, gender, mgmt_methylated:pd_l1_overexpressed) %>%
+  pivot_longer(
+    mgmt_methylated:pd_l1_overexpressed,
+    names_to = "mutation_type",
+    values_to = "mutation"
+  )
+```
+
+table of number of mutations per patient
+```{r}
+mutation_df %>%
+  group_by(patient_id) %>%
+  filter(mutation == 1) %>%
+  summarise(n_obs = n()) %>%
+  knitr::kable()
+```
+
+average number of mutations per patient
+```{r}
+mutation_df %>%
+  group_by(patient_id) %>%
+  filter(mutation == 1) %>%
+  mutate(n_obs = n()) %>%
+  select(patient_id, n_obs) %>%
+  distinct %>%
+  ungroup(patient_id) %>%
+  summarise(
+            mean = mean(n_obs),
+            sd = sd(n_obs)) %>%
+  knitr::kable()
+```
+
+distribution of number of mutations
+```{r}
+mutation_df %>%
+  group_by(patient_id) %>%
+  filter(mutation == 1) %>%
+  mutate(n_obs = n()) %>%
+  select(patient_id, n_obs) %>%
+  distinct %>%
+  ggplot(aes(x = n_obs)) + 
+  geom_bar(fill = "lightblue") +
+  labs(
+    title = "Distribution of Number of Mutations per Patient",
+    x = "Number of Mutations")
+```
+
+distribution of mutations
+```{r}
+mutation_df %>%
+  filter(mutation == 1) %>%
+  group_by(mutation_type) %>%
+  summarise(count = n()) %>%
+  mutate(mutation_type = fct_reorder(mutation_type, count)) %>%
+  ggplot(aes(x = mutation_type, y = count, color = mutation_type, fill = mutation_type)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Distribution of Mutation Types among Patients",
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")
+```
+
+gender distribution across mutations
+```{r}
+mutation_gender_df =
+  mutation_df %>%
+    filter(mutation == 1) %>%
+    group_by(patient_id) %>%
+    mutate(count = n()) %>%
+    mutate(mutation_type = fct_reorder(mutation_type, count))
+
+ggplot(data = mutation_gender_df, (aes(x = reorder(mutation_type, -count), fill = gender))) + 
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "Gender Distribution of Mutation Types among Patients",
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")
+```
+
+## demographic plots
+```{r}
+ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar(fill = "lightblue") +
+    labs(
+    title = "Gender Distribution of Patients",
+    x = "Gender") +
+    theme(legend.position = "bottom")
+
+ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar(fill="lightblue") +
+    labs(
+    title = "Age of Diagnosis Distribution of Patients",
+    x = "Age") +
+    theme(legend.position = "bottom")
+
+gbm_data %>%
+  mutate(line_of_therapy = as.character(line_of_therapy)) %>%
+  ggplot(aes(x = line_of_therapy)) + geom_bar(fill="lightblue") +
+    labs(
+    title = "Line of Therapy Distribution of Patients",
+    x = "Line of Therapy") +
+    theme(legend.position = "bottom")
+
+gbm_data %>%
+  count(race) %>%
+  mutate(race = fct_reorder(race, -n)) %>%
+  ggplot(aes(x = race, y = n)) + geom_bar(fill="lightblue", stat = "identity") +
+    labs(
+    title = "Race Distribution of Patients",
+    x = "Race") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+gbm_data %>%
+  count(primary_insurance) %>%
+  mutate(primary_insurance = fct_reorder(primary_insurance, -n)) %>%
+  ggplot(aes(x = primary_insurance, y = n)) + geom_bar(fill = "lightblue", stat = "identity") +
+    labs(
+    title = "Primary Health Insurance Distribution of Patients",
+    x = "Primar Health Insurance") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+
