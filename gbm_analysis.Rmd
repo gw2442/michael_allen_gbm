@@ -12,6 +12,7 @@ library(naniar)
 library(dplyr)
 library(ggplot2)
 library(forcats)
+library(mapproj)
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
@@ -29,15 +30,13 @@ scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
-## Importing data
+## Importing csv file
 
+Data was first imported, and names were cleaned. As there was no data dictionary provided, the assumption was made that inputs of 999 and 9 indicated missing information. Therefore, all inputs of 999 and 9 were converted into NA using `replace_with_na_all`.
 ```{r}
 gbm_data = read_csv(
   'data/gbm_patient_data.csv') %>%
   janitor::clean_names() %>%
-  mutate(
-    age = 2022 - year_of_birth,
-    ) %>%
   replace_with_na_all(condition = ~.x == 999) %>%
   replace_with_na_all(condition = ~.x == 9) 
 skimr::skim(gbm_data)
@@ -46,20 +45,37 @@ skimr::skim(gbm_data)
 
 
 ## Exploratory data analysis
-```{r, include = FALSE}
-ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar()
 
-ggplot(data = gbm_data, aes(x = age)) + geom_bar()
+Initial exploratory data analysis was first conducted to gain a better grasp on the demographics of the patient population 
+```{r}
+ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar()
+  gbm_data %>%
+  group_by(gender) %>%
+  summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar()
+  gbm_data %>%
+  summarise(mean(age_at_diagnosis), median(age_at_diagnosis))
 
 ggplot(data = gbm_data, aes(x = line_of_therapy)) + geom_bar()
+  gbm_data %>%
+  group_by(line_of_therapy) %>%
+  summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = race)) + geom_bar()
+  gbm_data %>%
+  group_by(race) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = patients_level_of_involvement_in_gbm)) + geom_bar()
+  gbm_data %>%
+    group_by(patients_level_of_involvement_in_gbm) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = patients_treatment_goals)) + geom_bar()
+  gbm_data %>%
+    group_by(patients_treatment_goals) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = primary_insurance)) + geom_bar()
 
@@ -68,8 +84,19 @@ ggplot(data = gbm_data, aes(x = adequate_caretaker_support)) + geom_bar()
 ggplot(data = gbm_data, aes(x = travel_time_to_your_office_30_min)) + geom_bar()
 
 ggplot(data = gbm_data, aes(x = ecog_at_1st_line)) + geom_bar()
+  gbm_data %>%
+    summarise(mean(ecog_at_1st_line), sd(ecog_at_1st_line))
+  gbm_data %>%
+    group_by(ecog_at_1st_line) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = ecog_at_2nd_line)) + geom_bar()
+  gbm_data %>%
+    drop_na(ecog_at_2nd_line) %>%
+    summarise(mean(ecog_at_2nd_line), sd(ecog_at_1st_line))
+  gbm_data %>%
+    group_by(ecog_at_2nd_line) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = mgmt_methylated)) + geom_bar()
        
@@ -88,16 +115,19 @@ ggplot(data = gbm_data, aes(x = regimen_in_1st_line)) + geom_bar()
 ggplot(data = gbm_data, aes(x = regimen_in_1st_line_other)) + geom_bar()
 
 ggplot(data = gbm_data, aes(x = regimen_in_2nd_line)) + geom_bar()
+  gbm_data %>%
+    group_by(regimen_in_2nd_line) %>%
+    summarise(n_obs = n())
 
 ggplot(data = gbm_data, aes(x = regimen_in_2nd_line_other)) + geom_bar()
-
 ```
 
 
 
 ## Comorbidity analysis
 
-Tidying dataframe:
+Tidying dataframe: 
+With a number of variables referring to patient comorbidity, a comorbidity dataframe was created based on the original dataset. The commorbidity dataframe pivoted and consolidated the comorbidity data, resulting in a variable `comorbidity_type` describing type of comorbidity and a second corresponding variable `comorbidity` with inputs of either 1 (yes) or 0 (no). The dataframe therefore consists of 3 variables: `patient_id`, `comorbidity_type`, and `comorbidity`.
 ```{r}
 comorbidity_df = read_csv(
   'data/gbm_patient_data.csv') %>%
@@ -117,18 +147,6 @@ comorbidity_df = read_csv(
   select(patient_id, comorbidity_type, comorbidity)
 ```
 
-
-Table of number of comorbidities per patient
-```{r}
-comorbidity_df %>%
-  group_by(patient_id) %>%
-  filter(comorbidity_type != "none") %>%
-  filter(comorbidity == 1) %>%
-  print(n = 850) %>%
-  summarise(n_obs = n()) %>%
-  knitr::kable()
-```
-
 Average number of comorbidities per patient 
 ```{r}
 comorbidity_df %>%
@@ -145,7 +163,7 @@ comorbidity_df %>%
   knitr::kable()
 ```
 
-distribution of number of comorbidities 
+Distribution of number of comorbidities 
 ```{r}
 comorbidity_df %>%
   group_by(patient_id) %>%
@@ -164,7 +182,7 @@ ggsave(path = "results", filename = "number_of_comorbidities.pdf")
 ```
 
 
-distribution of comorbidities
+Distribution of comorbidity types
 ```{r}
 comorbidity_df %>%
   filter(comorbidity_type != "none") %>%
@@ -176,7 +194,7 @@ comorbidity_df %>%
   geom_bar(stat = "identity") +
   coord_flip() +
   labs(
-    title = "Distribution of Comorbidity Types among Patients",
+    title = "Figure 2. Distribution of Comorbidity Types among Patients",
     x = "Comorbidities Types") +
     theme(legend.position = "bottom") +
     theme(legend.title = element_text(size = 8), 
@@ -185,16 +203,20 @@ comorbidity_df %>%
 ggsave(path = "results", filename = "distribution_of_comorbidity_types.pdf", width = 10, height = 7)
 ```
 
-comorbidity - other specified:
+Comorbidity - other specified:
+
+Only 8 patients specified other comorbidities. Specific comorbidities include: 
+aortic aneurism, arthritis, bipolar, disc disease, elevated cholesterol, herniated disc surgery, obesity, and Parkinsons.
 ```{r, include = FALSE}
 gbm_data %>%
   drop_na(comorbidity_other_specify_29) %>%
   ggplot(aes(x = comorbidity_other_specify_29)) + geom_bar()
 ```
-8 patients specified - specific comorbidities include: 
-aortic aneurism, arthritis, bipolar, disc disease, elevated cholesterol, herniated disc surgery, obese, parkinsons
 
-## ecog comparison 
+
+## ECOG Comparison 
+
+An ECOG dataframe was created to compare ECOG scores between 1st and 2nd line treatment. The dataframe consists of variables `patient_id`, `ecog_at_1st_line`, and `ecog_at_2nd_line`
 ```{r}
 ecog_data =
   gbm_data %>%
@@ -217,24 +239,7 @@ ggplot(data = ecog_data, aes(x = ecog_at_2nd_line)) +
 ggsave(path = "results", filename = "ecog_1st_2nd_comparison.pdf")
 ```
 
-##Regimen 1st vs 2nd
-```{r}
-gbm_data %>%
-  count(regimen_in_1st_line) %>%
-  mutate(regimen_in_1st_line = fct_reorder(regimen_in_1st_line, n)) %>%
-  ggplot(aes(x = regimen_in_1st_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip() +
-  
-
-gbm_data %>%
-  count(regimen_in_2nd_line) %>%
-  mutate(regimen_in_2nd_line = fct_reorder(regimen_in_2nd_line, n)) %>%
-  ggplot(aes(x = regimen_in_2nd_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip()
-
-ggsave(path = "results", filename = "regimen_1st_2nd.pdf", width = 10, height = 7)
-```
-
-
-1st line ecog by treatment and 2nd line ecog by treatment
+1st Line ECOG and 2nd Line ECOG by Treatment
 ```{r}
 ecog_data =
   gbm_data %>%
@@ -243,7 +248,7 @@ ecog_data =
 ggplot(data = ecog_data, aes(x = ecog_at_1st_line, fill = regimen_in_1st_line)) + 
   geom_bar() +
   labs(
-    title = "ECOG Distribution by Regimen at 1st Line Treatment",
+    title = "Figure 6. ECOG Distribution by Regimen at 1st and 2nd Line Treatment",
     x = "ECOG at 1st Line Treatment") +
     theme(legend.position = "bottom") +
     theme(legend.title = element_text(size = 10), 
@@ -252,7 +257,6 @@ ggplot(data = ecog_data, aes(x = ecog_at_1st_line, fill = regimen_in_1st_line)) 
   ggplot(data = ecog_data, aes(x = ecog_at_2nd_line, fill = regimen_in_2nd_line)) + 
   geom_bar() +
   labs(
-    title = "ECOG Distribution by Regimen at 2nd Line Treatment",
     x = "ECOG at 2nd Line Treatment") +
     theme(legend.position = "bottom") +
     theme(legend.title = element_text(size = 10), 
@@ -262,14 +266,13 @@ ggsave(path = "results", filename = "ecog_by_treatment_1st_2nd.pdf", width = 20,
 ```
 
 
+## Mutation Analysis 
 
-
-## mutation analysis
-tidying data
+With a number of variablees referring to mutation type for each patient, a mutation dataframe was created to examine the types of mutations each patient indicated, as well as mutation distribution. The mutation dataframe was pivoted and consolidated mutation data, resulting in a variable `mutation_type` describing the type of mutation and a second corresponding variable `mutation` with inputs of either 1 (yes) or 0 (no). The dataframe therefore consists of 3 variables: `patient_id`, `mutation_type`, and `mutation`.
 ```{r}
 mutation_df =
   gbm_data %>%
-  select(patient_id, gender, mgmt_methylated:pd_l1_overexpressed) %>%
+  select(patient_id, gender, mgmt_methylated:pd_l1_overexpressed, regimen_in_1st_line, regimen_in_2nd_line) %>%
   pivot_longer(
     mgmt_methylated:pd_l1_overexpressed,
     names_to = "mutation_type",
@@ -277,16 +280,7 @@ mutation_df =
   )
 ```
 
-table of number of mutations per patient
-```{r}
-mutation_df %>%
-  group_by(patient_id) %>%
-  filter(mutation == 1) %>%
-  summarise(n_obs = n()) %>%
-  knitr::kable()
-```
-
-average number of mutations per patient
+Average number of mutations per patient
 ```{r}
 mutation_df %>%
   group_by(patient_id) %>%
@@ -301,7 +295,7 @@ mutation_df %>%
   knitr::kable()
 ```
 
-distribution of number of mutations
+Distribution of number of mutations per patient
 ```{r}
 mutation_df %>%
   group_by(patient_id) %>%
@@ -315,10 +309,15 @@ mutation_df %>%
     title = "Distribution of Number of Mutations per Patient",
     x = "Number of Mutations")
 
+mutation_df %>%
+  group_by(mutation_type) %>%
+  filter(mutation == 1) %>%
+  summarise(n_obs = n())
+
 ggsave(path = "results", filename = "number_of_mmutations.pdf")
 ```
 
-distribution of mutations
+Distribution of mutation type
 ```{r}
 mutation_df %>%
   filter(mutation == 1) %>%
@@ -329,7 +328,7 @@ mutation_df %>%
   geom_bar(stat = "identity") +
   coord_flip() +
   labs(
-    title = "Distribution of Mutation Types among Patients",
+    title = "Figure 3. Distribution of Mutation Types among Patients",
     x = "Mutation Types") +
     theme(legend.position = "bottom")+
     theme(legend.title = element_text(size = 6), 
@@ -338,7 +337,7 @@ mutation_df %>%
 ggsave(path = "results", filename = "mutation_distribution.pdf")
 ```
 
-gender distribution across mutations
+Gender distribution across mutations
 ```{r}
 mutation_gender_df =
   mutation_df %>%
@@ -354,21 +353,91 @@ ggplot(data = mutation_gender_df, (aes(x = reorder(mutation_type, -count), fill 
     title = "Gender Distribution of Mutation Types among Patients",
     x = "Mutation Types") +
     theme(legend.position = "bottom")+
-    theme(legend.position = "bottom")+
     theme(legend.title = element_text(size = 6), 
                legend.text = element_text(size = 6))
 
 ggsave(path = "results", filename = "mutation_gender_distribution.pdf")
 ```
 
-## demographic plots
+1st ine treatment distribution across mutations 
+```{r}
+mutation_1st_line_df = 
+  mutation_df %>%
+  filter(mutation == 1) %>%
+  group_by(patient_id) %>%
+  mutate(count = n()) %>%
+  mutate(mutation_type = fct_reorder(mutation_type, count))
+
+ggplot(data = mutation_1st_line_df, (aes(x = reorder(mutation_type, -count), fill = regimen_in_1st_line))) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "1st Line Treatment Distribution of Mutation Types among Patients",
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "mutation_1st_line_distribution.pdf")
+```
+
+2nd line treatment distribution across mutations
+```{r}
+mutation_2nd_line_df = 
+  mutation_df %>%
+  drop_na(regimen_in_2nd_line) %>%
+  filter(mutation == 1) %>%
+  group_by(patient_id) %>%
+  mutate(count = n()) %>%
+  mutate(mutation_type = fct_reorder(mutation_type, count))
+
+ggplot(data = mutation_2nd_line_df, (aes(x = reorder(mutation_type, -count), fill = regimen_in_2nd_line))) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "2nd Line Treatment Distribution of Mutation Types among Patients",
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "mutation_2nd_line_distribution.pdf")
+```
+
+Combining Graphs: 1st and 2nd line treatment distribution across mutations
+```{r}
+ggplot(data = mutation_1st_line_df, (aes(x = reorder(mutation_type, -count), fill = regimen_in_1st_line))) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    title = "Figure 5. 1st and 2nd Line Treatment Distribution of Mutation Types among Patients",
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6)) +
+
+ggplot(data = mutation_2nd_line_df, (aes(x = reorder(mutation_type, -count), fill = regimen_in_2nd_line))) +
+  geom_bar() +
+  coord_flip() +
+  labs(
+    x = "Mutation Types") +
+    theme(legend.position = "bottom")+
+    theme(legend.title = element_text(size = 6), 
+               legend.text = element_text(size = 6))
+
+ggsave(path = "results", filename = "mutation_1st_and_2nd_line_distribution.pdf", width = 14, height = 7)
+
+```
+
+## Demographic Plots
+
+Based on initial exploratory analysis, releveant demographic variables were selected and its corresponding graphs were developed for the final report:
 ```{r}
 ggplot(data = gbm_data, aes(x = gender), color = gender) + geom_bar(fill = "lightblue") +
     labs(
     title = "Gender Distribution of Patients",
     x = "Gender") +
     theme(legend.position = "bottom")
-
 ggsave(path = "results", filename = "gender_distribution.pdf")
 
 ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar(fill="lightblue") +
@@ -376,7 +445,6 @@ ggplot(data = gbm_data, aes(x = age_at_diagnosis)) + geom_bar(fill="lightblue") 
     title = "Age of Diagnosis Distribution of Patients",
     x = "Age") +
     theme(legend.position = "bottom")
-
 ggsave(path = "results", filename = "age_at_diagnosis_distribution.pdf")
 
 gbm_data %>%
@@ -386,7 +454,6 @@ gbm_data %>%
     title = "Line of Therapy Distribution of Patients",
     x = "Line of Therapy") +
     theme(legend.position = "bottom")
-
 ggsave(path = "results", filename = "line_of_therapy_distribution.pdf")
 
 gbm_data %>%
@@ -399,17 +466,35 @@ gbm_data %>%
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ggsave(path = "results", filename = "race_distribution.pdf")
 
-
 gbm_data %>%
   count(primary_insurance) %>%
   mutate(primary_insurance = fct_reorder(primary_insurance, -n)) %>%
   ggplot(aes(x = primary_insurance, y = n)) + geom_bar(fill = "lightblue", stat = "identity") +
     labs(
-    title = "Primary Health Insurance Distribution of Patients",
-    x = "Primar Health Insurance") +
+    title = "Figure 1. Primary Health Insurance Distribution of Patients",
+    x = "Primary Health Insurance") +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
 ggsave(path = "results", filename = "primary_insurance_distribution.pdf")
-```
 
+ggplot(data = gbm_data, aes(x = patients_treatment_goals)) + geom_bar(fill = "lightblue") +
+    labs(
+    title = "Patient Treatment Goals",
+    x = "Patient Treatment Goals") 
+ggsave(path = "results", filename = "patient_treatment_goals.pdf")
+
+
+gbm_data %>%
+  count(regimen_in_1st_line) %>%
+  mutate(regimen_in_1st_line = fct_reorder(regimen_in_1st_line, n)) %>%
+  ggplot(aes(x = regimen_in_1st_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip() +
+  labs(
+    title = "Figure 4. 1st and 2nd Line Treatment Distribution") +
+gbm_data %>%
+  count(regimen_in_2nd_line) %>%
+  mutate(regimen_in_2nd_line = fct_reorder(regimen_in_2nd_line, n)) %>%
+  ggplot(aes(x = regimen_in_2nd_line, y = n)) + geom_bar(stat="identity", fill = "lightblue") + coord_flip()
+
+ggsave(path = "results", filename = "regimen_1st_2nd.pdf", width = 10, height = 7)
+
+```
 
